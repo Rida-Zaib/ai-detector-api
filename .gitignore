@@ -1,0 +1,5 @@
+detector_history.db
+__pycache__/
+*.pyc
+.vscode/a
+.env

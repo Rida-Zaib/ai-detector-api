@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Content Authenticity Examiner</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+ 
+  :root {
+    --ink: #1C2541;
+    --paper: #F7F8FA;
+    --paper-card: #FFFFFF;
+    --line: #D8DCE3;
+    --steel: #3B6E8F;
+    --sage: #4C7A5D;
+    --sage-bg: #E9F1EC;
+    --amber: #9C7A2E;
+    --amber-bg: #F5EFDF;
+    --brick: #A6473C;
+    --brick-bg: #F5E7E5;
+    --muted: #6B7280;
+  }
+ 
+  * { box-sizing: border-box; }
+ 
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+    line-height: 1.5;
+  }
+ 
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 20px;
+    margin-bottom: 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+ 
+  .masthead h1 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+  }
+ 
+  .masthead .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+  }
+ 
+  .masthead .case-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+  }
+ 
+  .intake-card {
+    background: var(--paper-card);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+ 
+  .tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+  }
+ 
+  .tab-btn {
+    padding: 9px 18px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+ 
+  .tab-btn.active {
+    color: var(--ink);
+    border-bottom: 2px solid var(--steel);
+  }
+ 
+  textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    resize: vertical;
+    background: var(--paper);
+  }
+ 
+  textarea:focus, input[type=file]:focus { outline: 2px solid var(--steel); outline-offset: 1px; }
+ 
+  .file-drop {
+    border: 1px dashed var(--line);
+    border-radius: 3px;
+    padding: 28px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--muted);
+    background: var(--paper);
+  }
+ 
+  .file-drop input { margin-top: 10px; }
+ 
+  .accepted-types {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+ 
+  .live-stat {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+ 
+  .submit-btn {
+    margin-top: 16px;
+    padding: 11px 22px;
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+  .submit-btn:hover { background: #2c3654; }
+  .submit-btn:disabled { background: var(--muted); cursor: not-allowed; }
+ 
+  .error-msg {
+    color: var(--brick);
+    font-size: 13px;
+    margin-top: 10px;
+  }
+ 
+  .hidden { display: none; }
+ 
+  /* ---- Report Card ---- */
+  .report {
+    display: none;
+    background: var(--paper-card);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+ 
+  .report-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+ 
+  .report-header h2 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 18px;
+    margin: 0;
+  }
+ 
+  .verdict-stamp {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 3px;
+    border: 1.5px solid;
+    letter-spacing: 0.03em;
+  }
+  .stamp-human { color: var(--sage); border-color: var(--sage); background: var(--sage-bg); }
+  .stamp-indeterminate { color: var(--amber); border-color: var(--amber); background: var(--amber-bg); }
+  .stamp-ai { color: var(--brick); border-color: var(--brick); background: var(--brick-bg); }
+ 
+  .gauge-section { padding: 22px 24px; border-bottom: 1px solid var(--line); }
+ 
+  .gauge-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+ 
+  .gauge-track {
+    height: 8px;
+    background: linear-gradient(to right, var(--sage), var(--amber), var(--brick));
+    border-radius: 4px;
+    position: relative;
+  }
+ 
+  .gauge-marker {
+    position: absolute;
+    top: -4px;
+    width: 3px;
+    height: 16px;
+    background: var(--ink);
+    transform: translateX(-1.5px);
+  }
+ 
+  .gauge-values {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+  }
+ 
+  .grade-badge {
+    display: inline-block;
+    font-family: 'Source Serif 4', serif;
+    font-weight: 700;
+    font-size: 20px;
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+    text-align: center;
+    border: 1.5px solid var(--ink);
+    border-radius: 50%;
+  }
+ 
+  .report-section { padding: 20px 24px; border-bottom: 1px solid var(--line); }
+  .report-section:last-child { border-bottom: none; }
+ 
+  .report-section h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 0 0 10px 0;
+    font-weight: 600;
+  }
+ 
+  .findings-list { margin: 0; padding-left: 18px; font-size: 13.5px; }
+  .findings-list li { margin-bottom: 6px; }
+ 
+  .preview-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--paper);
+    padding: 10px 12px;
+    border-radius: 3px;
+    border: 1px solid var(--line);
+  }
+ 
+  .behavior-line {
+    font-size: 13.5px;
+    padding: 10px 14px;
+    border-radius: 3px;
+    border-left: 3px solid;
+  }
+  .behavior-low { border-color: var(--sage); background: var(--sage-bg); color: var(--sage); }
+  .behavior-mixed { border-color: var(--amber); background: var(--amber-bg); color: var(--amber); }
+  .behavior-high { border-color: var(--brick); background: var(--brick-bg); color: var(--brick); }
+ 
+  .disclaimer {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px dotted var(--line);
+  }
+</style>
+</head>
+<body>
+ 
+  <div class="masthead">
+    <div>
+      <h1>Content Authenticity Examiner</h1>
+      <div class="subtitle">AI-generation likelihood assessment for submitted work</div>
+    </div>
+    <div class="case-id" id="caseId">CASE #—</div>
+  </div>
+ 
+  <div class="intake-card">
+    <div class="tabs">
+      <button class="tab-btn active" id="textTabBtn">Text</button>
+      <button class="tab-btn" id="fileTabBtn">Document / Image</button>
+    </div>
+ 
+    <div id="textTab">
+      <textarea id="textInput" placeholder="Paste or type the submission to be examined..."></textarea>
+      <div class="live-stat" id="liveStat">typed: 0 &nbsp;·&nbsp; pasted: 0</div>
+    </div>
+ 
+    <div id="fileTab" class="hidden">
+      <div class="file-drop">
+        Select a document or image to examine
+        <br/>
+        <input type="file" id="fileInput" accept=".docx,.pdf,.png,.jpg,.jpeg,.webp">
+        <div class="accepted-types">accepted: .docx · .pdf · .png · .jpg</div>
+      </div>
+    </div>
+ 
+    <button class="submit-btn" id="submitBtn">Run Examination</button>
+    <div class="error-msg" id="errorBox"></div>
+  </div>
+ 
+  <div class="report" id="reportBox">
+    <div class="report-header">
+      <h2>Examination Result</h2>
+      <span class="verdict-stamp" id="verdictStamp">—</span>
+    </div>
+ 
+    <div class="gauge-section">
+      <div class="gauge-labels"><span>HUMAN-AUTHORED</span><span>AI-GENERATED</span></div>
+      <div class="gauge-track"><div class="gauge-marker" id="gaugeMarker" style="left:0%"></div></div>
+      <div class="gauge-values">
+        <span id="humanPct">—% human</span>
+        <span class="grade-badge" id="gradeBadge">—</span>
+        <span id="aiPct">—% AI</span>
+      </div>
+    </div>
+ 
+    <div class="report-section">
+      <h3>Source Examined</h3>
+      <div id="sourceType" style="font-size:13.5px; margin-bottom:8px;">—</div>
+      <div class="preview-text" id="previewText">—</div>
+    </div>
+ 
+    <div class="report-section">
+      <h3>Findings</h3>
+      <ul class="findings-list" id="findingsList"></ul>
+    </div>
+ 
+    <div class="report-section" id="behaviorSection">
+      <h3>Input Behavior</h3>
+      <div class="behavior-line" id="behaviorLine">—</div>
+    </div>
+ 
+    <div class="report-section" id="plagiarismSection">
+      <h3>Originality Check</h3>
+      <div class="behavior-line" id="plagiarismLine">—</div>
+      <div id="plagiarismMatches" style="margin-top:8px; font-size:12.5px; color:var(--muted);"></div>
+    </div>
+ 
+    <div class="report-section">
+      <div class="disclaimer">
+        This assessment combines statistical writing-pattern analysis with AI-based semantic review,
+        and compares submissions against previously examined work stored in this system (not the open web).
+        No detection method is fully reliable against deliberately obfuscated or "humanized" AI text —
+        this result should inform, not replace, human judgment.
+      </div>
+    </div>
+  </div>
+ 
+<script>
+  const API_URL = "http://127.0.0.1:8001";
+ 
+  document.getElementById("caseId").textContent = "CASE #" + Math.floor(Math.random() * 900000 + 100000);
+ 
+  const textTabBtn = document.getElementById("textTabBtn");
+  const fileTabBtn = document.getElementById("fileTabBtn");
+  const textTab = document.getElementById("textTab");
+  const fileTab = document.getElementById("fileTab");
+  const textInput = document.getElementById("textInput");
+  const liveStat = document.getElementById("liveStat");
+ 
+  textTabBtn.onclick = () => {
+    textTabBtn.classList.add("active"); fileTabBtn.classList.remove("active");
+    textTab.classList.remove("hidden"); fileTab.classList.add("hidden");
+  };
+  fileTabBtn.onclick = () => {
+    fileTabBtn.classList.add("active"); textTabBtn.classList.remove("active");
+    fileTab.classList.remove("hidden"); textTab.classList.add("hidden");
+  };
+ 
+  let typedChars = 0, pastedChars = 0;
+  textInput.addEventListener("keydown", (e) => {
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) { typedChars++; updateLiveStat(); }
+  });
+  textInput.addEventListener("paste", (e) => {
+    const t = (e.clipboardData || window.clipboardData).getData("text");
+    pastedChars += t.length; updateLiveStat();
+  });
+  function updateLiveStat() {
+    liveStat.textContent = `typed: ${typedChars} · pasted: ${pastedChars}`;
+  }
+  function getPastePercentage() {
+    const total = typedChars + pastedChars;
+    if (total === 0) return 0;
+    return Math.round((pastedChars / total) * 1000) / 10;
+  }
+ 
+  function stampClass(verdict) {
+    if (verdict.includes("AI-Generated")) return "stamp-ai";
+    if (verdict === "Indeterminate") return "stamp-indeterminate";
+    return "stamp-human";
+  }
+  function behaviorClass(flag) {
+    if (flag === "High Paste Usage") return "behavior-high";
+    if (flag === "Mixed Input") return "behavior-mixed";
+    return "behavior-low";
+  }
+  function plagiarismClass(label) {
+    if (label === "Substantial Overlap Detected") return "behavior-high";
+    if (label === "Partial Overlap Detected") return "behavior-mixed";
+    return "behavior-low";
+  }
+ 
+  document.getElementById("submitBtn").addEventListener("click", async () => {
+    const errorBox = document.getElementById("errorBox");
+    const reportBox = document.getElementById("reportBox");
+    errorBox.textContent = "";
+    reportBox.style.display = "none";
+ 
+    const isFileMode = !fileTab.classList.contains("hidden");
+    const btn = document.getElementById("submitBtn");
+ 
+    try {
+      const formData = new FormData();
+ 
+      if (isFileMode) {
+        const fileInput = document.getElementById("fileInput");
+        if (!fileInput.files.length) { errorBox.textContent = "Please select a file."; return; }
+        formData.append("file", fileInput.files[0]);
+      } else {
+        const text = textInput.value.trim();
+        if (text.length < 20) { errorBox.textContent = "Please enter at least 20 characters."; return; }
+        formData.append("text", text);
+        formData.append("paste_percentage", getPastePercentage());
+      }
+ 
+      btn.disabled = true;
+      btn.textContent = "Examining...";
+ 
+      const response = await fetch(`${API_URL}/detect/report`, { method: "POST", body: formData });
+      const data = await response.json();
+ 
+      if (data.error) { errorBox.textContent = data.error; return; }
+ 
+      document.getElementById("verdictStamp").textContent = data.verdict;
+      document.getElementById("verdictStamp").className = "verdict-stamp " + stampClass(data.verdict);
+      document.getElementById("gaugeMarker").style.left = data.ai_likelihood_percent + "%";
+      document.getElementById("humanPct").textContent = data.human_likelihood_percent + "% human";
+      document.getElementById("aiPct").textContent = data.ai_likelihood_percent + "% AI";
+      document.getElementById("gradeBadge").textContent = data.grade;
+      document.getElementById("sourceType").textContent = "Type: " + data.source.replace("_", " ");
+      document.getElementById("previewText").textContent = data.extracted_text_preview;
+      document.getElementById("findingsList").innerHTML = data.reasons.map(r => `<li>${r}</li>`).join("");
+ 
+      const behaviorSection = document.getElementById("behaviorSection");
+      const behaviorLine = document.getElementById("behaviorLine");
+      if (data.input_behavior) {
+        behaviorSection.style.display = "block";
+        behaviorLine.className = "behavior-line " + behaviorClass(data.input_behavior.flag);
+        behaviorLine.textContent = data.input_behavior.flag + " — " + data.input_behavior.message;
+      } else {
+        behaviorSection.style.display = "none";
+      }
+ 
+      const plagiarismLine = document.getElementById("plagiarismLine");
+      const plagiarismMatches = document.getElementById("plagiarismMatches");
+      if (data.plagiarism) {
+        plagiarismLine.className = "behavior-line " + plagiarismClass(data.plagiarism.label);
+        plagiarismLine.textContent = data.plagiarism.label + " — " + data.plagiarism.similarity_percent + "% similarity to prior submissions";
+        if (data.plagiarism.matches && data.plagiarism.matches.length > 0) {
+          plagiarismMatches.textContent = "Matched submission ID(s): " +
+            data.plagiarism.matches.map(m => `#${m.submission_id} (${m.similarity_percent}%)`).join(", ");
+        } else {
+          plagiarismMatches.textContent = "No matching prior submissions found in this system.";
+        }
+      }
+ 
+      reportBox.style.display = "block";
+    } catch (err) {
+      errorBox.textContent = "Error: " + err.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Run Examination";
+    }
+  });
+</script>
+ 
+</body>
+</html>
